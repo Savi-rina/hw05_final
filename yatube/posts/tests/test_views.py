@@ -9,7 +9,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import Client, TestCase, override_settings
 from django.urls import reverse
 
-from ..models import Comment, Group, Post, Follow
+from ..models import Comment, Follow, Group, Post
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
@@ -40,16 +40,19 @@ class PostPagesTest(TestCase):
         cls.author = User.objects.create_user(username='Irina')
         cls.group = Group.objects.create(slug='test-slug',
                                          description='Тестовое описание',
-                                         title='Тестовый заголовок',
-                                         )
+                                         title='Тестовый заголовок')
         cls.group_2 = Group.objects.create(slug='test-slug2',
                                            description='Тестовое описание2',
-                                           title='Тестовый заголовок2', )
+                                           title='Тестовый заголовок2')
         cls.post = Post.objects.create(author=cls.author, text='Тестовый пост',
                                        group=cls.group, image=uploaded)
 
         cls.comment = Comment.objects.create(author=cls.author,
                                              text='Тестовый комментарий')
+
+        cls.following = (
+            cls.user.is_authenticated and cls.author.following.filter(
+                user=cls.user).exists())
 
     @classmethod
     def tearDownClass(cls):
@@ -104,11 +107,12 @@ class PostPagesTest(TestCase):
 
     def test_profile_show_correct_context(self):
         """Шаблон profile сформирован с правильным контекстом."""
-        response = self.client.get(
+        response = self.author_client.get(
             reverse('posts:profile', kwargs={'username': self.post.author}))
 
         self.assertEqual(response.context.get('author'), self.post.author)
         self.check_post_all_atributes(response.context['page_obj'][0])
+        self.assertEqual(response.context['following'], self.following)
 
     def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контестом."""
@@ -184,14 +188,6 @@ class PostPagesTest(TestCase):
             reverse('posts:post_edit', kwargs={'post_id': self.post.id}))
         self.assertTemplateUsed(response, 'posts/create_post.html')
 
-    def test_only_authorized_user_can_add_comment(self):
-        """Только авторизованный пользователь может комментировать посты."""
-        self.author_client.get(
-            reverse('posts:add_comment', kwargs={'post_id': self.post.id}))
-
-        self.assertTrue(Comment.objects.filter(text='Тестовый комментарий',
-                                               author=self.author).exists())
-
     def test_cache_for_index(self):
         """Проверка работы кеша для главной страницы."""
         post = Post.objects.create(author=self.author, text='какой-то текст')
@@ -219,11 +215,11 @@ class PaginatorViewTest(TestCase):
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(title='Тестовая группа',
                                          slug='test-slug',
-                                         description='Тестовое описание', )
+                                         description='Тестовое описание')
 
         for post in range(sum([POSTS_PER_PAGE, POSTS_LEFT_ON_PAGE])):
             Post.objects.create(text=f'Тестовый текст {post}', author=cls.user,
-                                group=cls.group, )
+                                group=cls.group)
 
     def test_first_page_contains_ten_posts(self):
         """Первая страница содержит десять постов."""
@@ -299,11 +295,10 @@ class FollowViewTest(TestCase):
         self.authorized_user.post(reverse('posts:profile_follow', kwargs={
             'username': f'{self.author.username}'}))
 
-        follow = Follow.objects.filter(user=self.user, author=self.author)
-
         follow_count = Follow.objects.count()
 
-        follow.delete()
+        self.authorized_user.post(reverse('posts:profile_unfollow', kwargs={
+            'username': f'{self.author.username}'}))
 
         self.assertNotEqual(Follow.objects.count(), follow_count)
 
@@ -311,15 +306,17 @@ class FollowViewTest(TestCase):
         """Новая запись пользователя появляется в ленте тех,
         кто на него подписан.
         """
+        form_data = {'text': 'Какой-то пост', }
 
         Follow.objects.create(user=self.user, author=self.author)
 
-        Post.objects.create(text='Какой-то текст', author=self.author)
+        self.author_client.post(reverse('posts:post_create'),
+                                data=form_data,
+                                follow=True)
 
         self.authorized_user.get(reverse('posts:follow_index'))
 
-        self.assertTrue(Post.objects.filter(text='Какой-то текст',
-                                            author=self.author).exists())
+        self.assertEqual(form_data['text'], Post.objects.first().text)
 
     def test_new_post_does_not_appear_for_non_followers(self):
         """Новая запись пользователя не появляется в ленте тех, кто не подписан.

@@ -1,5 +1,5 @@
-from django.db import models
 from django.contrib.auth import get_user_model
+from django.db import models
 
 User = get_user_model()
 
@@ -52,7 +52,7 @@ class Post(models.Model):
         on_delete=models.SET_NULL,
         related_name='posts',
         verbose_name='Посты группы',
-        help_text='Выберите группу'
+        help_text='Выберите группу',
     )
 
     image = models.ImageField(
@@ -102,6 +102,9 @@ class Follow(models.Model):
 
     class Meta:
         verbose_name = 'Подписка'
+
+        constraints = [models.UniqueConstraint(fields=('user', 'author'),
+                                               name='unique_follow')]
 
     def __str__(self):
         return str(self.user)

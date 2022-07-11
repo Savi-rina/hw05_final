@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.cache import cache_page
 
 from .forms import CommentForm, PostForm
-from .models import Group, Post, User, Follow
+from .models import Follow, Group, Post, User
 from .utils import make_paginator
 
 
@@ -55,8 +55,7 @@ def post_detail(request, post_id):
     post = get_object_or_404(Post, pk=post_id)
     form = CommentForm(request.POST or None)
     comments = post.comments.all()
-    context = {'post': post, 'comments': comments, 'form': form,
-               }
+    context = {'post': post, 'comments': comments, 'form': form}
 
     return render(request, 'posts/post_detail.html', context)
 
@@ -65,13 +64,12 @@ def post_detail(request, post_id):
 def post_create(request):
     """Страница для создания поста."""
     form = PostForm(request.POST or None, files=request.FILES or None)
-    if request.method == "POST":
-        if form.is_valid():
-            post = form.save(commit=False)
-            post.author = request.user
-            form.save()
+    if request.method == "POST" and form.is_valid():
+        post = form.save(commit=False)
+        post.author = request.user
+        form.save()
 
-            return redirect('posts:profile', request.user)
+        return redirect('posts:profile', request.user)
 
     return render(request, 'posts/create_post.html', {'form': form})
 
@@ -109,6 +107,7 @@ def add_comment(request, post_id):
         comment.author = request.user
         comment.post = post
         comment.save()
+
     return redirect('posts:post_detail', post_id=post_id)
 
 
@@ -120,6 +119,7 @@ def follow_index(request):
     """
     followed_posts = Post.objects.filter(author__following__user=request.user)
     context = {'page_obj': make_paginator(request, followed_posts)}
+
     return render(request, 'posts/follow.html', context)
 
 
@@ -132,6 +132,7 @@ def profile_follow(request, username):
                               user=request.user).exists()
         or request.user == following_author
     ):
+
         return redirect('posts:profile', username=username)
 
     Follow.objects.create(
@@ -146,8 +147,7 @@ def profile_follow(request, username):
 def profile_unfollow(request, username):
     """Страница для отписки от автора с редиректом на профайл."""
     author_to_unfollow = get_object_or_404(User, username=username)
-    follower = Follow.objects.filter(user=request.user,
-                                     author=author_to_unfollow)
-    if follower.exists():
-        follower.delete()
+    Follow.objects.filter(user=request.user,
+                          author=author_to_unfollow).delete()
+
     return redirect('posts:profile', username=username)

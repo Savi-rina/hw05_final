@@ -1,10 +1,7 @@
-from django.test import Client, TestCase
+from django.test import TestCase
 
 
 class ViewTestClass(TestCase):
-
-    def setUp(self):
-        self.client = Client()
 
     def test_unexisting_page_refers_to_correct_template(self):
         """ Cтраница 404 отдает кастомный шаблон."""

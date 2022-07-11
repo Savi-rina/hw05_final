@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.test import Client, TestCase
@@ -40,7 +42,7 @@ class PostsUrlTests(TestCase):
     def test_unexisting_page(self):
         """Страница unexisting_page вернет ошибку 404"""
         response = self.client.get('/unexisting_page/')
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     def test_urls_refers_to_correct_template_for_all(self):
         """ Для каждого URL-адреса возвращается
@@ -74,51 +76,51 @@ class PostsUrlTests(TestCase):
     def test_index_url_is_available_for_all(self):
         """Главная страница доступна любому пользователю."""
         response = self.client.get('/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_group_list_url_is_available_for_all(self):
         """Страница с постами, отфильтрованными по группе,
         доступна любому пользователю.
         """
         response = self.client.get(f'/group/{self.group.slug}/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_author_profile_url_is_available_for_all(self):
         """Страница с профайлом доступна любому пользователю."""
         response = self.client.get(f'/profile/{self.user.username}/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_post_detail_url_is_available_for_all(self):
         """Страница с деталями поста доступна любому пользователю."""
         response = self.client.get(f'/posts/{self.post.pk}/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_post_create_url_is_available_for_authorized(self):
         """Post_create доступна авторизованным пользователям."""
         response = self.authorized_client.get('/create/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_post_edit_url_is_available_for_author_only(self):
         """Страница /posts/<post_id>/edit доступна только автору"""
         response = self.post_author.get(f'/posts/{self.post.pk}/edit/')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_create_post_url_redirect_guest(self):
         """Страница /create/ перенаправляет анонимного пользователя."""
         response = self.client.get('/create/')
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_post_edit_url_redirect_guest(self):
         """Страница /posts/<post_id>/edit перенаправляет анонимного
         пользователя.
         """
         response = self.client.get(f'/posts/{self.post.pk}/edit/')
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_not_author_wants_edit_post(self):
         """Не автор пытается редактировать пост."""
         response = self.authorized_client.get(f'/posts/{self.post.pk}/edit/')
-        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.status_code, HTTPStatus.FOUND)
 
     def test_create_post_url_guest_user(self):
         """Гость не должен иметь доступ к странице

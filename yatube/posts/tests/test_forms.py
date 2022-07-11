@@ -1,3 +1,5 @@
+from http import HTTPStatus
+
 import shutil
 import tempfile
 
@@ -24,9 +26,12 @@ class PostFormTest(TestCase):
         cls.author = User.objects.create_user(username='Irina')
         cls.group = Group.objects.create(title='Тестовый заголовок',
                                          slug='test_slug',
-                                         description='Тестовое описание', )
+                                         description='Тестовое описание')
         cls.post = Post.objects.create(author=cls.author, text='Тестовый пост',
                                        group=cls.group)
+
+        cls.comment = Comment.objects.create(author=cls.author,
+                                             text='Тестовый комментарий')
 
         cls.form = PostForm()
 
@@ -71,7 +76,7 @@ class PostFormTest(TestCase):
             'username': self.author}))
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.check_post_all_atributes(test_post, form_data)
-        self.assertEqual(Post.objects.first().image.read(), self.small__gif)
+        self.assertEqual(test_post.image.read(), self.small__gif)
 
     def test_cannot_create_post_without_text(self):
         """Проверяем, что пост не может создаться без текста.
@@ -83,9 +88,9 @@ class PostFormTest(TestCase):
         posts_count = Post.objects.count()
         form_data = {'text': ''}
         response = self.authorized_client.post(reverse('posts:post_create'),
-                                               data=form_data, follow=True, )
+                                               data=form_data, follow=True)
         self.assertEqual(Post.objects.count(), posts_count)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_only_author_can_edit_post(self):
         """Валидная форма редактирует запись в Post.
@@ -115,10 +120,10 @@ class PostFormTest(TestCase):
                                                    kwargs={
                                                        'post_id':
                                                            f'{self.post.id}'}),
-                                           data=form_data, follow=True, )
+                                           data=form_data, follow=True)
 
         self.assertEqual(Post.objects.count(), posts_count)
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_only_authorized_client_can_add_comment(self):
         """Только авторизованный пользователь может комментировать посты.
@@ -130,10 +135,27 @@ class PostFormTest(TestCase):
         }
         response = self.authorized_client.post(
             reverse((
-                'posts:add_comment'), kwargs={'post_id': f'{self.post.id}'}),
+                'posts:add_comment'),
+                kwargs={'post_id': f'{self.post.id}'}),
             data=form_data,
             follow=True,
         )
         self.assertRedirects(response, reverse((
             'posts:post_detail'), kwargs={'post_id': f'{self.post.id}'}))
         self.assertEqual(Comment.objects.count(), comments_count + 1)
+        self.assertEqual(Comment.objects.first().text, form_data['text'])
+        self.assertTrue(Comment.objects.filter(text='Комментарий к посту',
+                                               author=self.user).exists())
+
+    def test_guest_can_not_add_comment(self):
+        """Гость не может комментировать посты."""
+
+        response = self.client.post(
+            reverse((
+                'posts:add_comment'),
+                kwargs={'post_id': f'{self.post.id}'}),
+            follow=True,
+        )
+        self.assertRedirects(response,
+                             f'/auth/login/?next=/posts/'
+                             f'{self.post.id}/comment/')
