@@ -107,4 +107,4 @@ class Follow(models.Model):
                                                name='unique_follow')]
 
     def __str__(self):
-        return str(self.user)
+        return str(f'{self.user} подписался на {self.author}')

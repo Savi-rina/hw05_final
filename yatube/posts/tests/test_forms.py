@@ -1,5 +1,4 @@
 from http import HTTPStatus
-
 import shutil
 import tempfile
 
@@ -35,12 +34,12 @@ class PostFormTest(TestCase):
 
         cls.form = PostForm()
 
-        cls.small__gif = (b'\x47\x49\x46\x38\x39\x61\x02\x00'
-                          b'\x01\x00\x80\x00\x00\x00\x00\x00'
-                          b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
-                          b'\x00\x00\x00\x2C\x00\x00\x00\x00'
-                          b'\x02\x00\x01\x00\x00\x02\x02\x0C'
-                          b'\x0A\x00\x3B')
+        cls.gif = (b'\x47\x49\x46\x38\x39\x61\x02\x00'
+                   b'\x01\x00\x80\x00\x00\x00\x00\x00'
+                   b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+                   b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+                   b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+                   b'\x0A\x00\x3B')
 
     @classmethod
     def tearDownClass(cls):
@@ -62,7 +61,7 @@ class PostFormTest(TestCase):
     def test_authorized_client_can_create_post(self):
         """Валидная форма создает запись в Post."""
         posts_count = Post.objects.count()
-        small_gif = self.small__gif
+        small_gif = self.gif
         uploaded = SimpleUploadedFile(name='small.gif', content=small_gif,
                                       content_type='image/gif')
         form_data = {'text': 'текст поста', 'group': self.group.id,
@@ -76,7 +75,7 @@ class PostFormTest(TestCase):
             'username': self.author}))
         self.assertEqual(Post.objects.count(), posts_count + 1)
         self.check_post_all_atributes(test_post, form_data)
-        self.assertEqual(test_post.image.read(), self.small__gif)
+        self.assertEqual(test_post.image.read(), self.gif)
 
     def test_cannot_create_post_without_text(self):
         """Проверяем, что пост не может создаться без текста.
@@ -106,7 +105,7 @@ class PostFormTest(TestCase):
                     kwargs={'post_id': f'{self.post.id}'}),
             data=form_data, follow=True)
 
-        test_post = Post.objects.first()
+        test_post = Post.objects.get(id=self.post.id)
 
         self.assertRedirects(response, reverse(('posts:post_detail'), kwargs={
             'post_id': f'{self.post.id}'}))
@@ -144,8 +143,7 @@ class PostFormTest(TestCase):
             'posts:post_detail'), kwargs={'post_id': f'{self.post.id}'}))
         self.assertEqual(Comment.objects.count(), comments_count + 1)
         self.assertEqual(Comment.objects.first().text, form_data['text'])
-        self.assertTrue(Comment.objects.filter(text='Комментарий к посту',
-                                               author=self.user).exists())
+        self.assertEqual(Comment.objects.first().author, self.user)
 
     def test_guest_can_not_add_comment(self):
         """Гость не может комментировать посты."""

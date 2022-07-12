@@ -50,10 +50,6 @@ class PostPagesTest(TestCase):
         cls.comment = Comment.objects.create(author=cls.author,
                                              text='Тестовый комментарий')
 
-        cls.following = (
-            cls.user.is_authenticated and cls.author.following.filter(
-                user=cls.user).exists())
-
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
@@ -86,7 +82,7 @@ class PostPagesTest(TestCase):
                 self.assertTemplateUsed(response, template)
 
     def check_post_all_atributes(self, post):
-        self.assertEqual(post.group.title, self.post.group.title)
+        self.assertEqual(post.group, self.post.group)
         self.assertEqual(post.author, self.post.author)
         self.assertEqual(post.text, self.post.text)
         self.assertEqual(post.id, self.post.id)
@@ -112,7 +108,7 @@ class PostPagesTest(TestCase):
 
         self.assertEqual(response.context.get('author'), self.post.author)
         self.check_post_all_atributes(response.context['page_obj'][0])
-        self.assertEqual(response.context['following'], self.following)
+        self.assertIsInstance(response.context['following'], bool)
 
     def test_post_detail_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контестом."""
@@ -300,7 +296,7 @@ class FollowViewTest(TestCase):
         self.authorized_user.post(reverse('posts:profile_unfollow', kwargs={
             'username': f'{self.author.username}'}))
 
-        self.assertNotEqual(Follow.objects.count(), follow_count)
+        self.assertEqual(Follow.objects.count(), follow_count - 1)
 
     def test_new_post_appears_for_followers(self):
         """Новая запись пользователя появляется в ленте тех,
