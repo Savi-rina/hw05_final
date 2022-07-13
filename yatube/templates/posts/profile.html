@@ -3,14 +3,14 @@
 <title>{% block title %}
   Профайл пользователя
   {% if author.get_full_name %}
-    {{ author.get_full_name }}
+  {{ author.get_full_name }}
   {% else %}
-    {{ author.username }}
+  {{ author.username }}
   {% endif %}
 {% endblock %}</title>
 {% block content %}
-<div class="container py-5">    
-  <div class="mb-5">  
+<div class="container py-5">
+  <div class="mb-5">
     <h1>Все посты пользователя
       {% if author.get_full_name %}
       {{ author.get_full_name }}
@@ -23,28 +23,26 @@
     <p> Подписчики: {{ author.follower.count }}</p>
     {% if following and user.is_authenticated and post.author != request.user %}
     <a
-      class="btn btn-lg btn-light"
-      href="{% url 'posts:profile_unfollow' author.username %}" role="button"
+            class="btn btn-lg btn-light"
+            href="{% url 'posts:profile_unfollow' author.username %}" role="button"
     >
       Отписаться
     </a>
     {% else %}
-      <a
-        class="btn btn-lg btn-primary"
-        href="{% url 'posts:profile_follow' author.username %}" role="button"
-      >
-        Подписаться
-      </a>
+    <a
+            class="btn btn-lg btn-primary"
+            href="{% url 'posts:profile_follow' author.username %}" role="button"
+    >
+      Подписаться
+    </a>
     {% endif %}
+    
+    <div>
+      {% for post in page_obj %}
+      {% include 'posts/includes/post.html' %}
+      {% endfor %}
+      {% include 'posts/includes/paginator.html' %}
+    </div>
   </div>
 </div>
-  <div>
-    {% for post in page_obj %}
-    {% include 'posts/includes/post.html' %}
-    {% if post.group %}
-    <a href="{% url 'posts:group_list' post.group.slug %}">все записи группы</a>
-    {% endif %}
-    {% endfor %}
-    {% include 'posts/includes/paginator.html' %}        
-  </div>
 {% endblock %}
