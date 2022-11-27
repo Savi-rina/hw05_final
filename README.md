@@ -1,3 +1,32 @@
-# hw05_final
+# Yatube - социальная сеть для публикации личных дневников.
 
-[![CI](https://github.com/yandex-praktikum/hw05_final/actions/workflows/python-app.yml/badge.svg?branch=master)](https://github.com/yandex-praktikum/hw05_final/actions/workflows/python-app.yml)
+### Реализована возможность создания постов и добавление к ним изображений, присвоения посту группы, подписки на понравившихся авторов. Используется пагинация и кэширование, добавлена возможность просматривать только посты интересующих пользователя групп.
+### Регистрация реализована с верификацией данных, а также написаны тесты, проверяющие работу сервиса.
+
+### Стек: Python 3, Django 2.2, PostgreSQL, Yandex.Cloud (Ubuntu 20.04), gunicorn, nginx
+
+### Как запустить проект:
+### Клонировать репозиторий и перейти в него в командной строке:
+```
+git clone https://github.com/Savi-rina/hw05_final.git
+
+cd hw05_final
+```
+### Cоздать и активировать виртуальное окружение:
+```
+python -m venv env
+source env/bin/activate
+```
+### Установить зависимости из файла requirements.txt:
+```
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+### Выполнить миграции:
+```
+python manage.py migrate
+```
+### Запустить проект:
+```
+python manage.py runserver
+```
